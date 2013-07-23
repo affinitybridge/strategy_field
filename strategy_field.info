@@ -1,5 +1,6 @@
 name = Strategy Field
 description = A field to configure processing at runtime (Strategy pattern).
 core = 7.x
+package = Fields
 
 files[] = StrategyField.php

@@ -1,0 +1,31 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the strategy_field module.
+ */
+
+/**
+ * Implements hook_field_schema().
+ */
+function strategy_field_field_schema($field) {
+  $columns = array(
+    'class' => array(
+      'type' => 'varchar',
+      'length' => 128,
+      'not null' => TRUE,
+    ),
+    'values' => array(
+      'type' => 'text',
+      'size' => 'big',
+      'not null' => TRUE,
+    ),
+  );
+
+  return array(
+    'columns' => $columns,
+    'indexes' => array(
+      'class' => array('class'),
+    ),
+  );
+}
