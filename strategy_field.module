@@ -7,13 +7,15 @@ function strategy_field_field_info() {
   $field_info['strategy_field'] = array(
     'label' => t('Strategy Field'),
     'description' => t('This field implements the Strategy pattern for dynamic processing at runtime.'),
-//      'settings' => array(),
     'default_widget' => 'strategy_field_widget',
     'default_formatter' => 'strategy_field_formatter',
   );
   return $field_info;
 }
 
+/**
+ * Implements hook_field_widget_info().
+ */
 function strategy_field_field_widget_info() {
   return array(
     'strategy_field_widget' => array(
@@ -23,6 +25,9 @@ function strategy_field_field_widget_info() {
   );
 }
 
+/**
+ * Implements hook_field_formatter_info().
+ */
 function strategy_field_field_formatter_info() {
   return array(
     'strategy_field_formatter' => array(
@@ -30,6 +35,13 @@ function strategy_field_field_formatter_info() {
       'field types' => array('strategy_field'),
     ),
   );
+}
+
+/**
+ * Implements hook_field_is_empty().
+ */
+function strategy_field_field_is_empty($item, $field) {
+  return empty($item['class']);
 }
 
 /**
@@ -49,59 +61,39 @@ function strategy_field_field_widget_form(&$form, &$form_state, $field, $instanc
   foreach ($classes as $class_name) {
     $class_options[$class_name] = $class_name::getLabel();
   }
-  dpm($field);
-  dpm($instance);
   $field_name = $instance['field_name'];
   
-//  $element['#attached']['js'][] = drupal_get_path('module', 'strategy_field') . '/strategy_field.js';
   // Strategy Field needs some kind of field settings, maybe to say what class is allowed
   $element['class'] = array(
     '#type' => 'radios',
     '#default_value' => empty($items[$delta]['class']) ? '' : $items[$delta]['class'],
     '#options' => $class_options,
-//    '#attributes' => array('class' => array('strategy-field-radios'))
   );
 
   $element['values'] = array(
     '#type' => 'container',
-//    '#attributes' => array('class' => array('strategy-field-strategy-values'))
   );
 
   foreach ($classes as $class_name) {
-//    $class_options[$class_name] = $class_name::getLabel();
     $strategy_values_key = 'strategy-values-' . $class_name;
     $element['values'][$strategy_values_key] = array(
       '#type' => 'fieldset',
       '#title' => $class_name::getLabel(),
-//      '#attributes' => array('class' => array($strategy_values_key)),
       '#states' => array(
         'visible' => array(
           ':input[name="' . $field_name . '[und][0][class]"]' => array('value' => $class_name)
         ),
       ),
     );
-    if (empty($items[$delta]['class']) || strcmp($items[$delta]['class'], $class_name)) {
-      $class_object = new $class_name(array());
-      $element['values'][$strategy_values_key] += $class_object->getForm();
+    $strategy_values = array();
+    if (!empty($items[$delta]['class']) && !strcmp($items[$delta]['class'], $class_name)) {
+      $strategy_values = $items[$delta]['values'];
     }
-    else {
-      $strategy_values = unserialize($items[$delta]['values']);
-//      dpm($strategy_values);
-      $class_object = new $class_name($strategy_values);
-//      dpm($items[$delta]);
-//      dpm($class_object);
-      $element['values'][$strategy_values_key] += $class_object->getForm();
-    }
+    $class_object = new $class_name($strategy_values);
+    $element['values'][$strategy_values_key] += $class_object->getForm();
   }
   
   return $element;
-}
-
-/**
- * Implements hook_field_is_empty().
- */
-function strategy_field_field_is_empty($item, $field) {
-  return empty($item['class']);
 }
 
 /**
@@ -133,89 +125,110 @@ function strategy_field_field_settings_form($field, $instance, $has_data) {
  * Implements hook_field_presave().
  */
 function strategy_field_field_presave($entity_type, $entity, $field, $instance, $langcode, &$items) {
-//  dpm($items);
-  
   foreach($items as $i => $item) {
     $strategy_name = $item['class'];
-    $strategy_values = $item['values']['values_' . $strategy_name];
-//    dpm($strategy_values);
+    $strategy_values = $item['values']['strategy-values-' . $strategy_name];
     $items[$i]['values'] = serialize($strategy_values);
   }
-//  dpm($items);
+}
+
+/**
+ * Implements hook_field_load().
+ */
+function strategy_field_field_load($entity_type, $entities, $field, $instances, $langcode, &$items, $age) {
+  foreach ($entities as $id => $entity) {
+    foreach ($items[$id] as $delta => $item) {
+      if (!is_array($item['values'])) {
+        $items[$id][$delta]['values'] = unserialize($item['values']);
+        $items[$id][$delta]['object'] = new $item['class']($items[$id][$delta]['values']);
+      }
+    }
+  }
 }
 
 
 /**
- * The #value_callback for the file_generic field element.
+ * Implements hook_field_formatter_view().
  */
-//function strategy_field_widget_element_validate($element, &$form_state) {
-function strategy_field_field_validate($entity_type, $entity,
-          $field, $instance, $langcode, $items, &$errors) {
-  /*
-  if ($input) {
-    // Checkboxes lose their value when empty.
-    // If the display field is present make sure its unchecked value is saved.
-    $field = field_widget_field($element, $form_state);
-    if (empty($input['display'])) {
-      $input['display'] = $field['settings']['display_field'] ? 0 : 1;
+function strategy_field_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
+  $element = array();
+
+  foreach ($items as $delta => $item) {
+    if (!is_array($item['values'])) {
+      $item['values'] = unserialize($item['values']);
     }
-  }
-  else {
-    return;
-  }
-
-  $fid = 0;
-
-  // Find the current value of this field from the form state.
-  $form_state_fid = $form_state['values'];
-
-  foreach ($element['#parents'] as $parent) {
-    $form_state_fid = isset($form_state_fid[$parent]) ? $form_state_fid[$parent] : 0;
+    $item['display'] = $display;
+    $element[$delta] = array(
+      '#markup' => theme('strategy_field_formatter_default', $item),
+    );
   }
 
-  if ($element['#extended'] && isset($form_state_fid['fid'])) {
-    $fid = $form_state_fid['fid'];
-  }
-  elseif (is_numeric($form_state_fid)) {
-    $fid = $form_state_fid;
-  }
-
-  // Process any input and save new uploads.
-  if ($input !== FALSE) {
-    $return = $input;
-    // We depend on the managed file element to handle uploads.
-    //  $return = file_managed_file_value($element, $input, $form_state);
-    // Load file if the FID has changed to confirm it exists.
-    if ($input['fid'] && $verify_file = file_load($input['fid'])) {
-      $fid = $verify_file->fid;
-    }
-  }
-  // If there is no input, set the default value.
-  else {
-    if ($element['#extended']) {
-      $default_fid = isset($element['#default_value']['fid']) ? $element['#default_value']['fid'] : 0;
-      $return = isset($element['#default_value']) ? $element['#default_value'] : array('fid' => 0);
-    }
-    else {
-      $default_fid = isset($element['#default_value']) ? $element['#default_value'] : 0;
-      $return = array('fid' => 0);
-    }
-
-    // Confirm that the file exists when used as a default value.
-    if ($default_fid && $file = file_load($default_fid)) {
-      $fid = $file->fid;
-    }
-  }
-  $return['fid'] = $fid;
-
-  if (empty($return['description'])) {
-    $return['description'] = '';
-  }
-  if (empty($return['display'])) {
-    $return['display'] = 1;
-  }
-  return $return;
-  */
+  return $element;
 }
 
+/**
+ * Implements hook_theme().
+ */
+function strategy_field_theme() {
+  return array(
+    'strategy_field_formatter_default' => array(
+      'variables' => array(
+        'class' => NULL,
+        'values' => array(),
+        'object' => NULL,
+        'display' => NULL,
+      ),
+    ),
+  );
+}
 
+/**
+ * Formats a link.
+ */
+function theme_strategy_field_formatter_default($vars) {
+  $output = '<fieldset>';
+  $output .= '<legend>' . $vars['class']::getLabel() . '</legend>';
+  $output .= $vars['object']->formatter($vars['display']);
+  $output .= '</fieldset>';
+
+  return $output;
+}
+
+/**
+ * Implements hook_field_field_validate().
+ */
+function strategy_field_field_validate($entity_type, $entity, $field, $instance, $langcode, $items, &$errors) {
+  foreach ($items as $delta => $item) {
+    // Check which class is set, then call validate for that class
+    if (isset($item['class']) && !empty($item['class'])) {
+      $strategy_values_key = 'strategy-values-' . $item['class'];
+      $strategy_obj = new $item['class']($item['values'][$strategy_values_key]);
+      $validation_errors = $strategy_obj->validate();
+
+      foreach ($validation_errors as $error_msg) {
+        $errors[$field['field_name']][$langcode][$delta][] = array(
+          'error' => 'strategy_field_error',
+          'message' => t(
+            '%title: @class: !error_msg',
+            array(
+              '%title' => $instance['label'],
+              '@class' => $item['class'],
+              '!error_msg' => $error_msg,
+            )
+          ),
+        );
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_field_widget_error().
+ */
+function strategy_field_field_widget_error($element, $error, $form, &$form_state) {
+  switch ($error['error']) {
+    case 'strategy_field_error':
+      form_error($element, $error['message']);
+      break;
+  }
+}
