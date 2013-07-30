@@ -55,42 +55,43 @@ function strategy_field_field_widget_form(&$form, &$form_state, $field, $instanc
 
   // Get Class options, for each class option, get form field
   // Get all strategy field base classes
-  $class_type = $field['settings']['class_type'];
-  $strategy_field_classes = module_invoke_all('strategy_field_classes');
-  $classes = $strategy_field_classes[$class_type];
+  $strategy_type = $field['settings']['strategy_type'];
+  $strategy_field_info = module_invoke_all('strategy_field_info');
+  $classes = $strategy_field_info[$strategy_type];
   foreach ($classes as $class_name) {
     $class_options[$class_name] = $class_name::getLabel();
   }
   $field_name = $instance['field_name'];
-  
-  // Strategy Field needs some kind of field settings, maybe to say what class is allowed
+
   $element['class'] = array(
     '#type' => 'radios',
     '#default_value' => empty($items[$delta]['class']) ? '' : $items[$delta]['class'],
     '#options' => $class_options,
   );
 
-  $element['values'] = array(
+  $element['strategy_settings'] = array(
     '#type' => 'container',
   );
 
   foreach ($classes as $class_name) {
-    $strategy_values_key = 'strategy-values-' . $class_name;
-    $element['values'][$strategy_values_key] = array(
+    $element['strategy_settings'][$class_name] = array(
       '#type' => 'fieldset',
-      '#title' => $class_name::getLabel(),
+      '#title' => t(
+        '%class_label settings',
+        array('%class_label' => $class_name::getLabel())
+      ),
       '#states' => array(
         'visible' => array(
           ':input[name="' . $field_name . '[und][0][class]"]' => array('value' => $class_name)
         ),
       ),
     );
-    $strategy_values = array();
+    $strategy_settings = array();
     if (!empty($items[$delta]['class']) && !strcmp($items[$delta]['class'], $class_name)) {
-      $strategy_values = $items[$delta]['values'];
+      $strategy_settings = $items[$delta]['strategy_settings'];
     }
-    $class_object = new $class_name($strategy_values);
-    $element['values'][$strategy_values_key] += $class_object->getForm();
+    $class_object = new $class_name($strategy_settings);
+    $element['strategy_settings'][$class_name] += $class_object->getForm();
   }
   
   return $element;
@@ -101,21 +102,19 @@ function strategy_field_field_widget_form(&$form, &$form_state, $field, $instanc
  */
 function strategy_field_field_settings_form($field, $instance, $has_data) {
   // Get all strategy field base classes
-  $strategy_field_classes = module_invoke_all('strategy_field_classes');
-  $options = array_keys($strategy_field_classes);
-
+  $strategy_field_info = module_invoke_all('strategy_field_info');
   $settings = $field['settings'];
-  
+
   $form = array();
   
-  $form['class_type'] = array(
+  $form['strategy_type'] = array(
     '#type' => 'select',
     '#title' => t('Strategy Field Type'),
-    '#default_value' => $settings['class_type'],
+    '#default_value' => $settings['strategy_type'],
     '#required' => TRUE,
     '#description' => t('The type of Strategy.'),
     '#disabled' => $has_data,
-    '#options' => array_combine($options, $options),
+    '#options' => array_combine(array_keys($strategy_field_info), array_keys($strategy_field_info)),
   );
   
   return $form;
@@ -126,9 +125,8 @@ function strategy_field_field_settings_form($field, $instance, $has_data) {
  */
 function strategy_field_field_presave($entity_type, $entity, $field, $instance, $langcode, &$items) {
   foreach($items as $i => $item) {
-    $strategy_name = $item['class'];
-    $strategy_values = $item['values']['strategy-values-' . $strategy_name];
-    $items[$i]['values'] = serialize($strategy_values);
+    $strategy_settings = $item['strategy_settings'][$item['class']];
+    $items[$i]['strategy_settings'] = serialize($strategy_settings);
   }
 }
 
@@ -138,9 +136,9 @@ function strategy_field_field_presave($entity_type, $entity, $field, $instance, 
 function strategy_field_field_load($entity_type, $entities, $field, $instances, $langcode, &$items, $age) {
   foreach ($entities as $id => $entity) {
     foreach ($items[$id] as $delta => $item) {
-      if (!is_array($item['values'])) {
-        $items[$id][$delta]['values'] = unserialize($item['values']);
-        $items[$id][$delta]['object'] = new $item['class']($items[$id][$delta]['values']);
+      if (!is_array($item['strategy_settings'])) {
+        $items[$id][$delta]['strategy_settings'] = unserialize($item['strategy_settings']);
+        $items[$id][$delta]['object'] = new $item['class']($items[$id][$delta]['strategy_settings']);
       }
     }
   }
@@ -154,8 +152,8 @@ function strategy_field_field_formatter_view($entity_type, $entity, $field, $ins
   $element = array();
 
   foreach ($items as $delta => $item) {
-    if (!is_array($item['values'])) {
-      $item['values'] = unserialize($item['values']);
+    if (!is_array($item['strategy_settings'])) {
+      $item['strategy_settings'] = unserialize($item['strategy_settings']);
     }
     $item['display'] = $display;
     $element[$delta] = array(
@@ -201,8 +199,7 @@ function strategy_field_field_validate($entity_type, $entity, $field, $instance,
   foreach ($items as $delta => $item) {
     // Check which class is set, then call validate for that class
     if (isset($item['class']) && !empty($item['class'])) {
-      $strategy_values_key = 'strategy-values-' . $item['class'];
-      $strategy_obj = new $item['class']($item['values'][$strategy_values_key]);
+      $strategy_obj = new $item['class']($item['strategy_settings'][$item['class']]);
       $validation_errors = $strategy_obj->validate();
 
       foreach ($validation_errors as $error_msg) {

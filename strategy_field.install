@@ -15,7 +15,7 @@ function strategy_field_field_schema($field) {
       'length' => 128,
       'not null' => TRUE,
     ),
-    'values' => array(
+    'strategy_settings' => array(
       'type' => 'text',
       'size' => 'big',
       'not null' => TRUE,
