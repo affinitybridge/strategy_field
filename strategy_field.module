@@ -67,6 +67,7 @@ function strategy_field_field_widget_form(&$form, &$form_state, $field, $instanc
     '#type' => 'radios',
     '#default_value' => empty($items[$delta]['class']) ? '' : $items[$delta]['class'],
     '#options' => $class_options,
+    '#title' => $element['#title'],
   );
 
   $element['strategy_settings'] = array(
