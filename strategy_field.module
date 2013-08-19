@@ -81,6 +81,7 @@ function strategy_field_field_widget_form(&$form, &$form_state, $field, $instanc
         '%class_label settings',
         array('%class_label' => $class_name::getLabel())
       ),
+      '#description' => $class_name::getDescription(),
       '#states' => array(
         'visible' => array(
           ':input[name="' . $field_name . '[und][0][class]"]' => array('value' => $class_name)
