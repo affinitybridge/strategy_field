@@ -84,7 +84,7 @@ function strategy_field_field_widget_form(&$form, &$form_state, $field, $instanc
       '#description' => $class_name::getDescription(),
       '#states' => array(
         'visible' => array(
-          ':input[name="' . $field_name . '[und][0][class]"]' => array('value' => $class_name)
+          ':input[name="' . $field_name . '[und][' . $delta . '][class]"]' => array('value' => $class_name)
         ),
       ),
     );
