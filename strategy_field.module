@@ -127,7 +127,7 @@ function strategy_field_field_settings_form($field, $instance, $has_data) {
  */
 function strategy_field_field_presave($entity_type, $entity, $field, $instance, $langcode, &$items) {
   foreach($items as $i => $item) {
-    $strategy_settings = $item['strategy_settings'][$item['class']];
+    $strategy_settings = isset($item['strategy_settings'][$item['class']]) ? $item['strategy_settings'][$item['class']] : $item['strategy_settings'];
     $items[$i]['strategy_settings'] = serialize($strategy_settings);
   }
 }
