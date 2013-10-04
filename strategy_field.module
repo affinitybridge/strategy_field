@@ -186,12 +186,13 @@ function strategy_field_theme() {
  * Formats a link.
  */
 function theme_strategy_field_formatter_default($vars) {
-  $output = '<fieldset>';
-  $output .= '<legend>' . $vars['class']::getLabel() . '</legend>';
-  $output .= $vars['object']->formatter($vars['display']);
-  $output .= '</fieldset>';
-
-  return $output;
+  $output = array(
+    '#theme' => 'html_tag',
+    '#tag' => 'fieldset',
+    '#value_prefix' => '<legend>' . $vars['class']::getLabel() . '</legend>',
+    '#value' => drupal_render($vars['object']->formatter($vars['display'])),
+  );
+  return drupal_render($output);
 }
 
 /**
