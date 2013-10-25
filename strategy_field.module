@@ -64,10 +64,12 @@ function strategy_field_field_widget_form(&$form, &$form_state, $field, $instanc
   $field_name = $instance['field_name'];
 
   $element['class'] = array(
-    '#type' => 'radios',
+    '#type' => 'select',
     '#default_value' => empty($items[$delta]['class']) ? '' : $items[$delta]['class'],
     '#options' => $class_options,
-    '#title' => $element['#title'],
+    '#title' => $strategy_type,
+    '#attributes' => array('class' => array('chosen-widget')),
+    '#suffix' => '<br/>',      
   );
 
   $element['strategy_settings'] = array(
@@ -77,10 +79,10 @@ function strategy_field_field_widget_form(&$form, &$form_state, $field, $instanc
   foreach ($classes as $class_name) {
     $element['strategy_settings'][$class_name] = array(
       '#type' => 'fieldset',
-      '#title' => t(
+      '#title' => '<strong>' . t(
         '%class_label settings',
         array('%class_label' => $class_name::getLabel())
-      ),
+      ) . '</strong>',
       '#description' => $class_name::getDescription(),
       '#states' => array(
         'visible' => array(
@@ -189,7 +191,7 @@ function theme_strategy_field_formatter_default($vars) {
   $output = array(
     '#theme' => 'html_tag',
     '#tag' => 'fieldset',
-    '#value_prefix' => '<legend>' . $vars['class']::getLabel() . '</legend>',
+    '#value_prefix' => '<legend><strong>' . $vars['class']::getLabel() . '</strong></legend>',
     '#value' => drupal_render($vars['object']->formatter($vars['display'])),
   );
   return drupal_render($output);
