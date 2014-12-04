@@ -188,11 +188,12 @@ function strategy_field_theme() {
  * Formats a link.
  */
 function theme_strategy_field_formatter_default($vars) {
+  $formatted_strategy_field = $vars['object']->formatter($vars['display']);
   $output = array(
     '#theme' => 'html_tag',
     '#tag' => 'fieldset',
     '#value_prefix' => '<legend><strong>' . $vars['class']::getLabel() . '</strong></legend>',
-    '#value' => drupal_render($vars['object']->formatter($vars['display'])),
+    '#value' => drupal_render($formatted_strategy_field),
   );
   return drupal_render($output);
 }
