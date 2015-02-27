@@ -204,7 +204,7 @@ function theme_strategy_field_formatter_default($vars) {
 function strategy_field_field_validate($entity_type, $entity, $field, $instance, $langcode, $items, &$errors) {
   foreach ($items as $delta => $item) {
     // Check which class is set, then call validate for that class
-    if (isset($item['class']) && !empty($item['class'])) {
+    if (isset($item['class']) && !empty($item['class']) && isset($item['strategy_settings'][$item['class']])) {
       $strategy_obj = new $item['class']($item['strategy_settings'][$item['class']]);
       $validation_errors = $strategy_obj->validate();
 
