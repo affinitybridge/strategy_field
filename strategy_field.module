@@ -70,12 +70,15 @@ function strategy_field_field_widget_form(&$form, &$form_state, $field, $instanc
   if (array_key_exists($delta, $items) && $items[$delta]['class']){
     $defined_class = $items[$delta]['class'];
     $element['class'] = array(
-      '#type' => 'value',
-      '#value' => $items[$delta]['class']
+      '#type' => 'hidden',
+      '#default_value' => $items[$delta]['class'],
+      '#attributes' => array('class' => array('strategy-class')),
     );
+    $element['remove_link'] = array('#markup' => '<a style="float:right" class="strategy_field_remove" data-class="' . $class_options[$defined_class] .'" data-delta="' . $delta . '">X</a>');
     $element['class_name'] = array(
       '#markup' => '<h4>' . $class_options[$defined_class] . '</h4>',
     );
+    drupal_add_js(drupal_get_path('module', 'strategy_field') . '/strategy_field.js', array('weight' => 10));
   } else {
     $element['class'] = array(
       '#type' => 'select',
