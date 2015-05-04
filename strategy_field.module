@@ -53,51 +53,76 @@ function strategy_field_field_widget_form(&$form, &$form_state, $field, $instanc
     $class_options[''] = t('None');
   }
 
+  $defined_class = NULL;
+
   // Get Class options, for each class option, get form field
   // Get all strategy field base classes
   $strategy_type = $field['settings']['strategy_type'];
   $strategy_field_info = module_invoke_all('strategy_field_info');
   $classes = $strategy_field_info[$strategy_type];
-  foreach ($classes as $class_name) {
-    $class_options[$class_name] = $class_name::getLabel();
+  if (count($classes)){
+    foreach ($classes as $class_name) {
+      $class_options[$class_name] = $class_name::getLabel();
+    }
+    $field_name = $instance['field_name'];
   }
-  $field_name = $instance['field_name'];
 
-  $element['class'] = array(
-    '#type' => 'select',
-    '#default_value' => empty($items[$delta]['class']) ? '' : $items[$delta]['class'],
-    '#options' => $class_options,
-    '#title' => $strategy_type,
-    '#attributes' => array('class' => array('chosen-widget')),
-    '#suffix' => '<br/>',      
-  );
+  if (array_key_exists($delta, $items) && $items[$delta]['class']){
+    $defined_class = $items[$delta]['class'];
+    $element['class'] = array(
+      '#type' => 'hidden',
+      '#default_value' => $items[$delta]['class'],
+      '#attributes' => array('class' => array('strategy-class')),
+    );
+    $element['remove_link'] = array('#markup' => '<a class="strategy_field_remove" data-class="' . $class_options[$defined_class] .'" data-delta="' . $delta . '">X</a>');
+    $element['class_name'] = array(
+      '#markup' => '<h4>' . $class_options[$defined_class] . '</h4>',
+    );
+    drupal_add_js(drupal_get_path('module', 'strategy_field') . '/strategy_field.js', array('weight' => 10));
+    drupal_add_css(drupal_get_path('module', 'strategy_field') . '/strategy_field.css');
+
+  } else {
+    $element['class'] = array(
+      '#type' => 'select',
+      '#default_value' => empty($items[$delta]['class']) ? '' : $items[$delta]['class'],
+      '#options' => $class_options,
+      '#title' => $strategy_type,
+      '#attributes' => array('class' => array('chosen-widget')),
+      '#suffix' => '<br/>',
+    );
+  }
 
   $element['strategy_settings'] = array(
     '#type' => 'container',
   );
 
-  foreach ($classes as $class_name) {
-    $element['strategy_settings'][$class_name] = array(
-      '#type' => 'fieldset',
-      '#title' => '<strong>' . t(
-        '%class_label settings',
-        array('%class_label' => $class_name::getLabel())
-      ) . '</strong>',
-      '#description' => $class_name::getDescription(),
-      '#states' => array(
-        'visible' => array(
-          ':input[name="' . $field_name . '[und][' . $delta . '][class]"]' => array('value' => $class_name)
+  if (is_array($classes)){
+    foreach ($classes as $class_name) {
+      if (isset($defined_class) && $class_name != $defined_class){
+        continue;
+      }
+      $element['strategy_settings'][$class_name] = array(
+        '#type' => 'fieldset',
+        '#title' => '<strong>' . t(
+          '%class_label settings',
+          array('%class_label' => $class_name::getLabel())
+        ) . '</strong>',
+        '#description' => $class_name::getDescription(),
+        '#states' => array(
+          'visible' => array(
+            ':input[name="' . $field_name . '[und][' . $delta . '][class]"]' => array('value' => $class_name)
+          ),
         ),
-      ),
-    );
-    $strategy_settings = array();
-    if (!empty($items[$delta]['class']) && !strcmp($items[$delta]['class'], $class_name)) {
-      $strategy_settings = $items[$delta]['strategy_settings'];
+      );
+      $strategy_settings = array();
+      if (!empty($items[$delta]['class']) && !strcmp($items[$delta]['class'], $class_name)) {
+        $strategy_settings = $items[$delta]['strategy_settings'];
+      }
+      $class_object = new $class_name($strategy_settings);
+      $element['strategy_settings'][$class_name] += $class_object->getForm();
     }
-    $class_object = new $class_name($strategy_settings);
-    $element['strategy_settings'][$class_name] += $class_object->getForm();
   }
-  
+
   return $element;
 }
 
@@ -110,7 +135,7 @@ function strategy_field_field_settings_form($field, $instance, $has_data) {
   $settings = $field['settings'];
 
   $form = array();
-  
+
   $form['strategy_type'] = array(
     '#type' => 'select',
     '#title' => t('Strategy Field Type'),
@@ -204,7 +229,7 @@ function theme_strategy_field_formatter_default($vars) {
 function strategy_field_field_validate($entity_type, $entity, $field, $instance, $langcode, $items, &$errors) {
   foreach ($items as $delta => $item) {
     // Check which class is set, then call validate for that class
-    if (isset($item['class']) && !empty($item['class']) && isset($item['strategy_settings'][$item['class']])) {
+    if (isset($item['class']) && !empty($item['class'])) {
       $strategy_obj = new $item['class']($item['strategy_settings'][$item['class']]);
       $validation_errors = $strategy_obj->validate();
 
