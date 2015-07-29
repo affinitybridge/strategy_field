@@ -67,7 +67,7 @@ function strategy_field_field_widget_form(&$form, &$form_state, $field, $instanc
     $field_name = $instance['field_name'];
   }
 
-  if (array_key_exists($delta, $items) && $items[$delta]['class']){
+  if (array_key_exists($delta, $items) && $items[$delta]['class'] && $field['cardinality'] != 1){
     $defined_class = $items[$delta]['class'];
     $element['class'] = array(
       '#type' => 'hidden',
