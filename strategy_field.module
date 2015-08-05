@@ -260,3 +260,28 @@ function strategy_field_field_widget_error($element, $error, $form, &$form_state
       break;
   }
 }
+
+/*
+ * Helper function to return form element items for a strategy field widget (for use in hook_form_alter()).
+ */
+function strategy_field_get_all_widget_forms(&$form_field) {
+  $langcode = $form_field['#language'];
+  $widget_forms = array();
+  foreach ($form_field[$langcode] as $delta => &$strategy) {
+    if (is_numeric($delta)) {
+      if ($class_name = $strategy['class']['#default_value']) {
+        $widget_forms[$delta][$class_name] =& $strategy['strategy_settings'][$class_name];
+      }
+      else {
+        if (isset($strategy['class']['#options'])) {
+          foreach (array_keys($strategy['class']['#options']) as $class_name) {
+            if (isset($strategy['strategy_settings'][$class_name])) {
+              $widget_forms[$delta][$class_name] =& $strategy['strategy_settings'][$class_name];
+            }
+          }
+        }
+      }
+    }
+  }
+  return $widget_forms;
+}
