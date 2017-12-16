@@ -145,7 +145,7 @@ function strategy_field_field_settings_form($field, $instance, $has_data) {
     '#disabled' => $has_data,
     '#options' => array_combine(array_keys($strategy_field_info), array_keys($strategy_field_info)),
   );
-  
+
   return $form;
 }
 
@@ -191,6 +191,17 @@ function strategy_field_field_formatter_view($entity_type, $entity, $field, $ins
   }
 
   return $element;
+}
+
+/**
+ * Implements hook_hook_info().
+ */
+function strategy_field_hook_info() {
+  return array(
+    'strategy_field_info' => array(
+      'group' => 'strategy_field',
+    ),
+  );
 }
 
 /**
