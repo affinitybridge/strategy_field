@@ -30,9 +30,10 @@ function strategy_field_update_revisions($field_name, $class_name, $update_setti
     foreach ($field_rows as $revision_id => $row) {
       drupal_set_message(
         t(
-          'Updating revision @revision-id of @bundle @entity-type @entity-id',
+          'Updating revision @revision-id (delta @delta) of @bundle @entity-type @entity-id',
           array(
             '@revision-id' => $revision_id,
+            '@delta' => $row->delta,
             '@bundle' => $row->bundle,
             '@entity-type' => $row->entity_type,
             '@entity-id' => $row->entity_id
@@ -59,6 +60,7 @@ function strategy_field_update_revisions($field_name, $class_name, $update_setti
       db_update($table_name)
       ->fields($update_fields)
       ->condition('revision_id', $revision_id)
+      ->condition('delta', $row->delta)
       ->execute();
       $updated_revisions[] = $revision_id;
     }
